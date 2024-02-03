@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YouTube Downloader</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f2f2f2;
+      }
+
+      #header {
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      #logo {
+        font-size: 24px;
+        font-weight: bold;
+        color: #4285f4;
+        margin-bottom: 30px; /* Added margin-bottom to create space between logo and search box */
+      }
+
+      #search-container {
+        text-align: center;
+        margin: 20% auto; /* Adjusted margin for better centering */
+      }
+
+      #search-box {
+        padding: 10px;
+        width: 80%;
+        max-width: 400px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        outline: none;
+        font-size: 16px;
+      }
+ 
+   
+      #search-btn,
+      #audio-btn {
+        padding: 8px 15px; /* Adjusted padding for smaller buttons */
+        font-size: 14px; /* Adjusted font size */
+        cursor: pointer;
+        border-radius: 5px;
+        color: #fff;
+        border: none;
+      }
+
+      #search-btn:disabled,
+      #audio-btn:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+
+      #search-btn {
+        background-color: #4285f4;
+      }
+
+      #audio-btn {
+        background-color: #4285f4;
+        margin-left: 10px;
+      }
+
+      #loading {
+        margin-top: 15px;
+        display: none;
+      }
+      @media only screen and (max-width: 600px) {
+        #search-box {
+          width: 90%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- <div id="header">
+        <span id="logo">YT Downloader</span>
+    </div> -->
+
+    <form id="search-container"  >
+      {% csrf_token %}
+
+      <label id="logo">YT Downloader</label>
+      <br />
+      <br />
+      <input
+        type="url"
+        id="search-box"
+        placeholder="Enter YouTube URL"
+        name="link"
+      />
+     
+      <div class="video-info-container" style="display: none;">
+        <br>
+        <br>
+        <p id="title"></p><img id="thumbnail" alt="Thumbnail" width="128" height="72">
+
+    </div>
+      <br>
+      <div id="loading" class="text-center mt-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+        <!-- <p class="mt-2">Loading...</p> -->
+    </div>  
+      <br >
+ 
+      <button
+        type="submit"
+        id="search-btn"
+        name="submit_button"
+        value="Download Video"
+      >
+        Download Video
+      </button>
+
+      <button
+        type="submit"
+        id="audio-btn"
+        name="submit_button"
+        value="Download Audio"
+      >
+        Download Audio
+      </button>
+    </form>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("search-container");
+        const loading = document.getElementById("loading");
+        const searchBtn = document.getElementById("search-btn");
+        const audioBtn = document.getElementById("audio-btn");
+    
+        form.addEventListener("submit", function (event) {
+            event.preventDefault();
+            const submitButton = event.submitter.value;
+    
+            if (validateForm()) {
+                loading.style.display = "block";
+                searchBtn.disabled = true;
+                audioBtn.disabled = true;
+                $('.video-info-container').hide();
+                fetch('{% url "convert" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams(new FormData(form)).toString() +
+                        `&submit_button=${submitButton}`,
+                })
+                    .then(response => {
+            
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        videoTitle = response.headers.get('X-Video-Title');
+                        return response.blob();
+                    })
+                    .then(data => {
+                        // Create a blob URL from the response blob
+                        const url = URL.createObjectURL(data);
+                        
+                        // Create an anchor element
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = url;
+                     //   downloadLink.download = 'downloaded_file'; // Set the desired file name
+                        downloadLink.download = `${videoTitle}.mp4`;
+                        // Append the anchor element to the body and trigger the click event
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+    
+                        // Release the Blob URL after use
+                        URL.revokeObjectURL(url);
+                    })
+                    .catch(error => {
+                        console.error('Fetch error:', error);
+                        alert("Error. Please try again later.");
+                    })
+                    .finally(() => {
+                        loading.style.display = "none";
+                        searchBtn.disabled = false;
+                        audioBtn.disabled = false;
+                    });
+            }
+        });
+    });
+    $(document).ready(function () {
+      $('#search-box').on('change', function () {
+          var videoUrl = $(this).val();
+  
+          $.ajax({
+              url: '/get_video_info/',
+              data: { video_url: videoUrl },
+              dataType: 'json',
+              success: function (data) {
+                  // Handle the response data
+                  if ('error' in data) {
+                      console.error('Error:', data.error);
+                  } else {
+                      var thumbnailUrl = data.thumbnail_url;
+                      var title = data.title;
+  
+                      // Use thumbnailUrl and title as needed
+                      console.log('Thumbnail URL:', thumbnailUrl);
+                      console.log('Title:', title);
+                      $('#thumbnail').attr('src', thumbnailUrl);
+                      $('#title').text(title);  
+                      $('.video-info-container').show();
+                  }
+              },
+              error: function (jqXHR, textStatus, errorThrown) {
+                  console.error('Error:', textStatus, errorThrown);
+              }
+          });
+      });
+  });
+  
+      function validateForm() {
+        var url = document.getElementById("search-box").value;
+        
+        if (isValidYouTubeUrl(url)) {
+          // Continue with form submission
+          return true;
+        } else {
+          alert("Invalid YouTube URL. Please enter a valid URL.");
+          // Prevent form submission
+          return false;
+        }
+      }
+
+      function downloadVideo() {
+       var url = document.getElementById("search-box").value;
+           if (isValidYouTubeUrl(url)) {
+               alert("Starting video download for: " + url);
+               // You can add additional functionality here for video download.
+           } else {
+              alert("Invalid YouTube URL. Please enter a valid URL.");
+           }
+       }
+
+       function downloadAudio() {
+           var url = document.getElementById("search-box").value;
+           if (isValidYouTubeUrl(url)) {
+               alert("Starting audio download for: " + url);
+               // You can add additional functionality here for audio download.
+           } else {
+              alert("Invalid YouTube URL. Please enter a valid URL.");
+           }
+       }
+
+      function isValidYouTubeUrl(url) {
+        var youtubeRegex =
+          /^(?:(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11}))/;
+        var additionalRegex = /(?:v=|\/)([0-9A-Za-z_-]{11}).*/;
+
+        return youtubeRegex.test(url) && additionalRegex.test(url);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>SUM</h1>
+
+  {% for liskt1 in liskt %}
+    <h1>Name:</h1> <h1>{{ liskt1.name }}</h1>
+    <h1>Age:</h1> <h1>{{ liskt1.age }}</h1>
+    <br>
+  {% endfor %}
+
+  <h2>{{ sum }}</h2>
+{% endblock %}
