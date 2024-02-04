@@ -144,6 +144,8 @@
             if (validateForm()) {
                 loading.style.display = "block";
                 searchBtn.disabled = true;
+                videoTitle =""
+                audioTitle =""
                 audioBtn.disabled = true;
                 $('.video-info-container').hide();
                 fetch('{% url "convert" %}', {
@@ -159,22 +161,35 @@
                         if (!response.ok) {
                             throw new Error(`HTTP error! Status: ${response.status}`);
                         }
-                        videoTitle = response.headers.get('X-Video-Title');
+                        if (submitButton === "Download Video") {
+                          videoTitle = response.headers.get('X-Video-Title');
+                      } else if (submitButton === "Download Audio") {
+                        audioTitle = response.headers.get('X-Audio-Title');
+                      }
+                      
                         return response.blob();
                     })
                     .then(data => {
                         // Create a blob URL from the response blob
                         const url = URL.createObjectURL(data);
-                        
-                        // Create an anchor element
                         const downloadLink = document.createElement('a');
                         downloadLink.href = url;
-                     //   downloadLink.download = 'downloaded_file'; // Set the desired file name
-                        downloadLink.download = `${videoTitle}.mp4`;
-                        // Append the anchor element to the body and trigger the click event
+                        if (submitButton === "Download Video") {
+                          downloadLink.download = `${videoTitle}.mp4`;
+                          document.body.appendChild(downloadLink);
+                          downloadLink.click();
+                          document.body.removeChild(downloadLink);
+                      } else if (submitButton === "Download Audio") {
+                        downloadLink.download = `${audioTitle}.mp3`;
                         document.body.appendChild(downloadLink);
                         downloadLink.click();
                         document.body.removeChild(downloadLink);
+                      }
+                    
+                     //   downloadLink.download = 'downloaded_file'; // Set the desired file name
+                    
+                        // Append the anchor element to the body and trigger the click event
+                       
     
                         // Release the Blob URL after use
                         URL.revokeObjectURL(url);

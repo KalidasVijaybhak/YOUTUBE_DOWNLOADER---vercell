@@ -54,7 +54,7 @@ def download_audio(request, url):
         # Create a Django HttpResponse with appropriate headers
         response = HttpResponse(buffer.getvalue(), content_type='audio/mpeg')
         response['Content-Disposition'] = f'attachment; filename="{yt.title}.mp3"'
-        
+        response['X-Audio-Title'] = yt.title
         # Include additional information in the response header
       
 
